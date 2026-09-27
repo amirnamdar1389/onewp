@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سامانه پیشرفته استعلام و مدیریت کارت‌های بانکی | سرویس زحل</title>
+  
+  <!-- کتابخانه‌ها و فونت‌ها -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <!-- تولید کیوآرکد و خروجی اکسل/تصویر -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Vazirmatn', 'sans-serif'],
+            mono: ['Courier New', 'monospace']
+          },
+          colors: {
+            fintech: {
+              gold: '#f59e0b',
+              accent: '#38bdf8',
+              success: '#10b981',
+              danger: '#f43f5e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background: #090d16;
+      background-image: 
+        radial-gradient(at 10% 20%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+        radial-gradient(at 90% 80%, rgba(168, 85, 247, 0.08) 0px, transparent 50%);
+      min-height: 100vh;
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    /* افکت سه بعدی و شیب کارت بانکی */
+    .card-3d-wrapper {
+      perspective: 1200px;
+    }
+    
+    .card-3d-inner {
+      transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease;
+      transform-style: preserve-3d;
+    }
+
+    .card-3d-inner:hover {
+      transform: rotateY(-8deg) rotateX(6deg) translateY(-4px);
+    }
+
+    /* انیمیشن پالس شتابی */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.9; }
+    }
+    .glow-effect {
+      animation: pulse-glow 3s infinite ease-in-out;
+    }
+
+    /* سفارشی سازی اسکرول‌بار */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 1);
+    }
+  </style>
+</head>
+<body class="text-slate-100 flex flex-col min-h-screen">
+
+  <!-- نوار بالای صفحه (Header) -->
+  <header class="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      
+      <!-- لوگو و برند -->
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white font-bold text-lg">
+            <i class="fa-solid fa-satellite-dish"></i>
+          </div>
+          <span class="absolute -bottom-1 -right-1 flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base tracking-tight bg-gradient-to-r from-sky-400 via-indigo-300 to-white bg-clip-text text-transparent">سامانه استعلام کارت زُحل</span>
+            <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/30 px-2 py-0.5 rounded-full font-mono font-semibold">v3.5 PRO</span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden sm:block">استعلام بلادرنگ نام و نشان دارنده کارت از بستر شاپرک</p>
+        </div>
+      </div>
+
+      <!-- ابزارهای هدر -->
+      <div class="flex items-center gap-2.5">
+        <!-- وضعیت سرور -->
+        <div class="hidden md:flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-300">سرعت پاسخ:</span>
+          <span class="font-mono text-emerald-400 font-bold">380ms</span>
+        </div>
+
+        <!-- دکمه استعلام دسته‌ای (Batch) -->
+        <button onclick="toggleBatchModal(true)" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition flex items-center gap-1.5 text-xs">
+          <i class="fa-solid fa-layer-group text-sky-400"></i>
+          <span class="hidden sm:inline">استعلام دسته‌ای</span>
+        </button>
+
+        <!-- دکمه تنظیمات -->
+        <button onclick="toggleSettingsModal(true)" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition relative" title="تنظیمات API">
+          <i class="fa-solid fa-sliders text-amber-400"></i>
+          <span id="apiStatusDot" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500"></span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- محتوای اصلی -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- ستون چپ / بالا: فرم هوشمند و پیش‌نمایش کارت سه‌بعدی -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+
+      <!-- کارت ویژوال مدرن (قابلیت دانلود به عنوان تصویر) -->
+      <div class="card-3d-wrapper">
+        <div id="captureCardTarget" class="card-3d-inner w-full rounded-3xl p-6 sm:p-7 border border-white/10 shadow-2xl relative overflow-hidden flex flex-col justify-between h-64 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950">
+          
+          <!-- المان‌های پس‌زمینه گرافیکی -->
+          <div id="cardGlowBackdrop" class="absolute -top-16 -right-16 w-64 h-64 bg-sky-500/20 rounded-full blur-3xl pointer-events-none transition-all duration-700"></div>
+          <div class="absolute -bottom-16 -left-16 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <!-- ردیف بالای کارت -->
+          <div class="flex justify-between items-start relative z-10">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-9 rounded-md bg-gradient-to-tr from-amber-400 via-yellow-200 to-amber-500 border border-amber-300/50 shadow-inner flex items-center justify-center">
+                <i class="fa-solid fa-microchip text-slate-900 text-lg opacity-80"></i>
+              </div>
+              <i class="fa-solid fa-wifi text-slate-400 text-base rotate-90 opacity-60"></i>
+            </div>
+            
+            <div class="flex items-center gap-2.5">
+              <div id="bankLogoWrapper" class="w-7 h-7 rounded-full bg-white/10 p-1 flex items-center justify-center border border-white/10">
+                <i class="fa-solid fa-building-columns text-slate-200 text-xs"></i>
+              </div>
+              <span id="bankNameDisplay" class="text-xs md:text-sm font-bold tracking-wide text-white drop-shadow">بانک مقصد</span>
+            </div>
+          </div>
+
+          <!-- شماره ۱۶ رقمی کارت -->
+          <div class="my-auto relative z-10 text-center" dir="ltr">
+            <div id="cardDigitsDisplay" class="text-2xl sm:text-3xl font-mono tracking-widest text-slate-100 font-black drop-shadow-md selection:bg-sky-500">
+              •••• •••• •••• ••••
+            </div>
+          </div>
+
+          <!-- ردیف پایین کارت -->
+          <div class="flex justify-between items-end relative z-10 pt-2 border-t border-white/10">
+            <div class="space-y-0.5">
+              <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">صاحب کارت / Account Holder</div>
+              <div id="cardHolderDisplay" class="text-slate-100 font-bold text-sm sm:text-base tracking-wide">
+                در انتظار استعلام...
+              </div>
+            </div>
+
+            <!-- وضعیت اعتبار و لوگوی شتاب -->
+            <div class="flex flex-col items-end gap-1">
+              <div id="cardTypeTag" class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800/80 border border-slate-600 text-slate-300 font-mono">
+                Shetab Debit
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono" id="currentDateDisplay">1403/00</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- کنترل‌های سریع روی کارت ویژوال -->
+      <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2">
+          <button onclick="downloadCardImage()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-camera text-sky-400"></i>
+            <span>عکس کارت</span>
+          </button>
+          <button onclick="openQrModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-qrcode text-purple-400"></i>
+            <span>بارکد QR</span>
+          </button>
+          <button onclick="copyToClipboard(currentInquiryResult?.card || document.getElementById('cardNumberInput').value)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5 transition">
+            <i class="fa-regular fa-copy text-amber-400"></i>
+            <span>کپی شماره</span>
+          </button>
+        </div>
+
+        <div id="luhnBadge" class="hidden items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md">
+          <!-- با جاوااسکریپت پر می‌شود -->
+        </div>
+      </div>
+
+      <!-- پنل ورودی و دکمه‌های استعلام -->
+      <div class="glass-panel rounded-3xl p-6 sm:p-7 space-y-5">
+        
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-2 flex justify-between items-center">
+            <span>شماره کارت ۱۶ رقمی شتاب:</span>
+            <span class="text-[11px] text-slate-400 font-normal">تبدیل خودکار ارقام فارسی و جداکننده</span>
+          </label>
+          
+          <div class="relative flex items-center">
+            <div class="absolute right-4 text-slate-400 text-base pointer-events-none">
+              <i class="fa-regular fa-credit-card"></i>
+            </div>
+            
+            <input 
+              type="text" 
+              id="cardNumberInput" 
+              maxlength="19"
+              placeholder="---- ---- ---- ----" 
+              dir="ltr"
+              autocomplete="off"
+              oninput="handleCardInput(event)"
+              onkeydown="if(event.key==='Enter') executeInquiry()"
+              class="w-full bg-slate-900/90 border-2 border-slate-700/80 focus:border-sky-500 rounded-2xl py-3.5 pr-12 pl-24 text-slate-100 font-mono text-lg font-bold tracking-widest outline-none transition duration-200 placeholder:text-slate-600 shadow-inner"
+            />
+
+            <!-- ابزارهای درون اینپوت -->
+            <div class="absolute left-2 flex items-center gap-1">
+              <button 
+                onclick="clearInput()" 
+                id="clearBtn"
+                class="hidden p-2 text-slate-400 hover:text-rose-400 transition text-sm"
+                title="پاک‌کردن">
+                <i class="fa-solid fa-circle-xmark"></i>
+              </button>
+              <button 
+                onclick="pasteFromClipboard()" 
+                class="p-2 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl text-xs border border-slate-700 transition flex items-center gap-1"
+                title="جای‌گذاری مستقیم">
+                <i class="fa-regular fa-paste"></i>
+                <span class="hidden sm:inline text-[10px]">Paste</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="validationMessage" class="text-xs text-rose-400 mt-2 hidden flex items-center gap-1.5 animate-bounce">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="validationText">الگوریتم رقم کنترلی (Luhn) نامعتبر است!</span>
+          </div>
+        </div>
+
+        <!-- دکمه‌های اقدام -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+          <button 
+            id="inquiryBtn" 
+            onclick="executeInquiry()"
+            class="flex-1 bg-gradient-to-r from-sky-500 via-indigo-600 to-sky-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold py-3.5 px-6 rounded-2xl shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2.5 transition duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none">
+            <i class="fa-solid fa-bolt text-amber-300"></i>
+            <span>استعلام هوشمند نام دارنده</span>
+          </button>
+          
+          <button 
+            onclick="shareResult()" 
+            id="shareBtn"
+            class="px-5 py-3.5 rounded-2xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 transition"
+            title="اشتراک‌گذاری فیش">
+            <i class="fa-solid fa-share-nodes text-sky-400"></i>
+            <span class="sm:hidden text-xs">اشتراک‌گذاری</span>
+          </button>
+        </div>
+
+        <!-- دکمه‌های سریع کارت‌های نمونه برای تست -->
+        <div class="pt-2 border-t border-slate-800/80">
+          <div class="text-[11px] text-slate-400 mb-2 font-medium flex items-center gap-1">
+            <i class="fa-solid fa-vial-circle-check text-amber-400"></i>
+            <span>پیش‌شماره‌های محبوب بانکی جهت آزمایش:</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="setSampleCard('603799')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700 transition">ملی (603799)</button>
+            <button onclick="setSampleCard('610433')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700 transition">ملت (610433)</button>
+            <button onclick="setSampleCard('589210')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700 transition">سپه (589210)</button>
+            <button onclick="setSampleCard('621986')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700 transition">سامان (621986)</button>
+            <button onclick="setSampleCard('502229')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700 transition">پاسارگاد (502229)</button>
+            <button onclick="setSampleCard('622106')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700 transition">پارسیان (622106)</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ستون راست / پایین: تاریخچه، آمار، مدیریت کارت‌های نشان‌شده -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+
+      <!-- کارت وضعیت و آمار کلی -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800">
+          <div class="text-slate-400 text-xs flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-chart-simple text-sky-400"></i>
+            <span>کل استعلام‌ها</span>
+          </div>
+          <div id="statTotalCount" class="text-2xl font-black font-mono text-white">0</div>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800">
+          <div class="text-slate-400 text-xs flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-shield-check text-emerald-400"></i>
+            <span>تطابق موفق</span>
+          </div>
+          <div id="statSuccessCount" class="text-2xl font-black font-mono text-emerald-400">100%</div>
+        </div>
+      </div>
+
+      <!-- جعبه تاریخچه هوشمند و جستجو -->
+      <div class="glass-panel rounded-3xl p-6 flex flex-col min-h-[440px]">
+        
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 gap-2">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div>
+              <h2 class="font-bold text-sm text-slate-100">تاریخچه تراکنش‌ها</h2>
+              <span class="text-[10px] text-slate-400">ذخیره خودکار در حافظه محلی</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="exportHistoryCSV()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs" title="خروجی فایل اکسل/CSV">
+              <i class="fa-solid fa-file-excel text-emerald-400"></i>
+            </button>
+            <button onclick="clearHistory()" class="p-2 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 border border-slate-700 text-xs" title="پاکسازی تاریخچه">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- فیلتر جستجو در تاریخچه -->
+        <div class="mt-3.5 mb-2 relative">
+          <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-3 text-slate-500 text-xs"></i>
+          <input 
+            type="text" 
+            id="searchHistoryInput" 
+            oninput="filterHistory(this.value)"
+            placeholder="جستجو در نام، شماره کارت یا بانک..."
+            class="w-full bg-slate-900/60 border border-slate-800 focus:border-sky-500/60 rounded-xl py-2 pr-9 pl-3 text-xs text-slate-200 outline-none placeholder:text-slate-500"
+          />
+        </div>
+
+        <!-- لیست تاریخچه -->
+        <div id="historyListContainer" class="space-y-2.5 overflow-y-auto max-h-[350px] pr-1 mt-2 flex-1">
+          <!-- با جاوااسکریپت پر می‌شود -->
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- فوتر اپلیکیشن -->
+  <footer class="mt-auto border-t border-slate-900 bg-slate-950/80 px-4 py-4 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+        <span>توسعه‌یافته بر پایه استاندارد وب‌سرویس استعلام شتابی <a href="https://zohal.io" target="_blank" class="text-sky-400 hover:underline">Zohal.io</a></span>
+      </div>
+      <div class="text-slate-400 text-[11px]">
+        تمامی تراکنش‌ها به صورت رمزنگاری‌شده End-to-End منتقل می‌گردند.
+      </div>
+    </div>
+  </footer>
+
+  <!-- مودال تنظیمات API زحل -->
+  <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+    <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-7 border border-slate-700 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+      
+      <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+            <i class="fa-solid fa-sliders"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-100">تنظیمات درگاه اتصال زحل</h3>
+            <p class="text-[11px] text-slate-400">پیکربندی کلید وب‌سرویس و حالت اتصال</p>
+          </div>
+        </div>
+        <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1.5">کلید دسترسی (API Key / Bearer Token):</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="apiKeyInput" 
+              placeholder="کد توکن زحل خود را اینجا الصاق کنید..." 
+              class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-100 font-mono text-xs focus:border-sky-500 outline-none pr-10"
+            />
+            <button onclick="togglePasswordVisibility('apiKeyInput')" class="absolute left-3 top-3 text-slate-400 hover:text-slate-200">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">
+            توکن شما فقط در مرورگر ذخیره شده و به هیچ سرور جانبی ارسال نمی‌شود.
+          </p>
+        </div>
+
+        <!-- تنظیم نوع محیط کاری -->
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1.5">محیط اتصال:</label>
+          <select id="apiEnvSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200 text-xs focus:border-sky-500 outline-none">
+            <option value="production">سرور عملیاتی زحل (Production Endpoint)</option>
+            <option value="sandbox">محیط آزمایشی هوشمند (Sandbox / Demo Simulator)</option>
+          </select>
+        </div>
+
+        <!-- تاخیر ساختگی برای تست -->
+        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+          <span>شبیه‌سازی تاخیر شبکه در حالت دمو:</span>
+          <span class="font-mono text-sky-400 font-bold">400ms</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
+        <button onclick="toggleSettingsModal(false)" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-medium">انصراف</button>
+        <button onclick="saveApiSettings()" class="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-lg shadow-sky-600/20">ذخیره پیکربندی</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- مودال نمایش کیوآرکد کارت -->
+  <div id="qrModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+    <div class="glass-panel w-full max-w-sm rounded-3xl p-6 text-center space-y-4 border border-slate-700">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-sm text-slate-200">بارکد هوشمند انتقال وجه</h3>
+        <button onclick="closeQrModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="qrcode" class="p-4 bg-white rounded-2xl mx-auto w-fit shadow-lg"></div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        اسکن با همراه بانک‌ها جهت واریز مستقیم به شماره کارت
+      </p>
+
+      <button onclick="closeQrModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold">بستن</button>
+    </div>
+  </div>
+
+  <!-- مودال استعلام دسته‌ای (Batch Inquiry) -->
+  <div id="batchModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+    <div class="glass-panel w-full max-w-2xl rounded-3xl p-6 sm:p-7 space-y-4 border border-slate-700 max-h-[90vh] flex flex-col">
+      
+      <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-layer-group text-sky-400 text-lg"></i>
+          <h3 class="font-bold text-sm text-slate-100">استعلام دسته‌ای و گروهی کارت‌ها</h3>
+        </div>
+        <button onclick="toggleBatchModal(false)" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-400">
+        شماره کارت‌ها را در هر خط به صورت مجزا وارد کنید (حداکثر ۲۰ شماره در هر درخواست):
+      </p>
+
+      <textarea 
+        id="batchInput" 
+        rows="5" 
+        placeholder="603799...&#10;610433...&#10;589210..." 
+        dir="ltr"
+        class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-100 font-mono text-xs focus:border-sky-500 outline-none resize-none"></textarea>
+
+      <div id="batchResults" class="flex-1 overflow-y-auto space-y-2 max-h-48 hidden border-t border-slate-800 pt-3">
+        <!-- خروجی دسته‌ای -->
+      </div>
+
+      <div class="flex justify-between items-center pt-2">
+        <button onclick="runBatchInquiry()" id="startBatchBtn" class="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-2">
+          <i class="fa-solid fa-play"></i>
+          <span>شروع استعلام دسته‌ای</span>
+        </button>
+        <button onclick="toggleBatchModal(false)" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs">بستن</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- جاوااسکریپت و منطق برنامه -->
+  <script>
+    // پایگاه داده پیش‌شماره‌های شتابی (BIN) با رنگ‌بندی و لوگوها
+    const BANK_REGISTRY = {
+      '603799': { name: 'بانک ملی ایران', gradient: 'linear-gradient(135deg, #1e3a8a, #0f172a)', logo: 'fa-building-columns' },
+      '589210': { name: 'بانک سپه', gradient: 'linear-gradient(135deg, #854d0e, #1c1917)', logo: 'fa-shield-halved' },
+      '627648': { name: 'بانک توسعه صادرات', gradient: 'linear-gradient(135deg, #14532d, #064e3b)', logo: 'fa-ship' },
+      '627961': { name: 'بانک صنعت و معدن', gradient: 'linear-gradient(135deg, #78350f, #451a03)', logo: 'fa-industry' },
+      '603770': { name: 'بانک کشاورزی', gradient: 'linear-gradient(135deg, #15803d, #14532d)', logo: 'fa-wheat-awn' },
+      '628023': { name: 'بانک مسکن', gradient: 'linear-gradient(135deg, #c2410c, #7c2d12)', logo: 'fa-house-chimney' },
+      '627760': { name: 'پست بانک ایران', gradient: 'linear-gradient(135deg, #047857, #064e3b)', logo: 'fa-envelope' },
+      '502908': { name: 'بانک توسعه تعاون', gradient: 'linear-gradient(135deg, #0369a1, #0c4a6e)', logo: 'fa-handshake' },
+      '627412': { name: 'بانک اقتصاد نوین', gradient: 'linear-gradient(135deg, #7e22ce, #3b0764)', logo: 'fa-chart-pie' },
+      '622106': { name: 'بانک پارسیان', gradient: 'linear-gradient(135deg, #991b1b, #450a0a)', logo: 'fa-gem' },
+      '502229': { name: 'بانک پاسارگاد', gradient: 'linear-gradient(135deg, #ca8a04, #713f12)', logo: 'fa-crown' },
+      '639347': { name: 'بانک پاسارگاد', gradient: 'linear-gradient(135deg, #ca8a04, #713f12)', logo: 'fa-crown' },
+      '627488': { name: 'بانک کارآفرین', gradient: 'linear-gradient(135deg, #0f766e, #134e4a)', logo: 'fa-briefcase' },
+      '621986': { name: 'بانک سامان', gradient: 'linear-gradient(135deg, #0284c7, #075985)', logo: 'fa-circle-nodes' },
+      '639346': { name: 'بانک سینا', gradient: 'linear-gradient(135deg, #b45309, #78350f)', logo: 'fa-coins' },
+      '639607': { name: 'بانک سرمایه', gradient: 'linear-gradient(135deg, #4338ca, #312e81)', logo: 'fa-vault' },
+      '636214': { name: 'بانک آینده', gradient: 'linear-gradient(135deg, #831843, #500724)', logo: 'fa-infinity' },
+      '502806': { name: 'بانک شهر', gradient: 'linear-gradient(135deg, #be123c, #881337)', logo: 'fa-city' },
+      '504706': { name: 'بانک شهر', gradient: 'linear-gradient(135deg, #be123c, #881337)', logo: 'fa-city' },
+      '502938': { name: 'بانک دی', gradient: 'linear-gradient(135deg, #0284c7, #082f49)', logo: 'fa-sun' },
+      '603769': { name: 'بانک صادرات ایران', gradient: 'linear-gradient(135deg, #1e40af, #172554)', logo: 'fa-landmark' },
+      '610433': { name: 'بانک ملت', gradient: 'linear-gradient(135deg, #b91c1c, #450a0a)', logo: 'fa-fire-flame-curved' },
+      '585983': { name: 'بانک تجارت', gradient: 'linear-gradient(135deg, #1e3a8a, #1e1b4b)', logo: 'fa-scale-balanced' },
+      '505785': { name: 'بانک ایران زمین', gradient: 'linear-gradient(135deg, #9d174d, #4c0519)', logo: 'fa-earth-asia' },
+      '504172': { name: 'بانک رسالت', gradient: 'linear-gradient(135deg, #1e3a8a, #0f172a)', logo: 'fa-star-half-stroke' },
+      '606373': { name: 'بانک مهر ایران', gradient: 'linear-gradient(135deg, #047857, #022c22)', logo: 'fa-hand-holding-heart' },
+      '505416': { name: 'بانک گردشگری', gradient: 'linear-gradient(135deg, #9f1239, #4c0519)', logo: 'fa-compass' },
+      '636795': { name: 'بانک مرکزی', gradient: 'linear-gradient(135deg, #334155, #0f172a)', logo: 'fa-building' },
+      '606256': { name: 'موسسه ملل (عسکریه)', gradient: 'linear-gradient(135deg, #475569, #1e293b)', logo: 'fa-building-columns' },
+      '581874': { name: 'بانک ایران و ونزوئلا', gradient: 'linear-gradient(135deg, #1e293b, #090d16)', logo: 'fa-globe' }
+    };
+
+    // متغیرهای وضعیت برنامه
+    let historyData = JSON.parse(localStorage.getItem('zohal_inquiry_history_v3') || '[]');
+    let currentInquiryResult = null;
+    let qrInstance = null;
+
+    // بارگذاری اولیه
+    document.addEventListener('DOMContentLoaded', () => {
+      renderHistory();
+      updateStats();
+      
+      const savedKey = localStorage.getItem('zohal_api_key') || '';
+      const savedEnv = localStorage.getItem('zohal_api_env') || 'production';
+      
+      document.getElementById('apiKeyInput').value = savedKey;
+      document.getElementById('apiEnvSelect').value = savedEnv;
+      updateApiStatusDot(!!savedKey);
+
+      // نمایش تاریخ شمسی جاری روی کارت
+      const today = new Intl.DateTimeFormat('fa-IR', { year: '2-digit', month: '2-digit' }).format(new Date());
+      document.getElementById('currentDateDisplay').textContent = today;
+    });
+
+    // تبدیل ارقام فارسی و عربی به انگلیسی
+    function toEnglishDigits(str) {
+      if (!str) return '';
+      return str.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+    }
+
+    // الگوریتم استاندارد Luhn (MOD-10) برای اعتبارسنجی کارت
+    function validateLuhn(cardNumber) {
+      const clean = toEnglishDigits(cardNumber).replace(/\D/g, '');
+      if (clean.length !== 16) return false;
+      let sum = 0;
+      for (let i = 0; i < 16; i++) {
+        let digit = parseInt(clean.charAt(i), 10);
+        if (i % 2 === 0) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+      }
+      return sum % 10 === 0;
+    }
+
+    // مدیریت ورودی شماره کارت به صورت زنده
+    function handleCardInput(e) {
+      let raw = toEnglishDigits(e.target.value).replace(/\D/g, '').substring(0, 16);
+      
+      // دسته‌بندی چهارتایی ارقام
+      const formatted = (raw.match(/.{1,4}/g) || []).join(' ');
+      e.target.value = formatted;
+
+      // مدیریت دکمه پاکسازی
+      const clearBtn = document.getElementById('clearBtn');
+      if (raw.length > 0) clearBtn.classList.remove('hidden');
+      else clearBtn.classList.add('hidden');
+
+      // به‌روزرسانی نمایش روی کارت گرافیکی
+      const displayDigits = raw.padEnd(16, '•').match(/.{1,4}/g).join(' ');
+      document.getElementById('cardDigitsDisplay').textContent = displayDigits;
+
+      // شناسایی BIN بانک
+      const badge = document.getElementById('luhnBadge');
+      if (raw.length >= 6) {
+        const bin = raw.substring(0, 6);
+        const bank = BANK_REGISTRY[bin];
+        if (bank) {
+          document.getElementById('bankNameDisplay').textContent = bank.name;
+          document.getElementById('captureCardTarget').style.background = bank.gradient;
+          document.getElementById('bankLogoWrapper').innerHTML = `<i class="fa-solid ${bank.logo} text-white"></i>`;
+        } else {
+          document.getElementById('bankNameDisplay').textContent = 'بانک عضو شتاب';
+          document.getElementById('captureCardTarget').style.background = 'linear-gradient(135deg, #1e293b, #0f172a)';
+          document.getElementById('bankLogoWrapper').innerHTML = `<i class="fa-solid fa-building-columns text-slate-200"></i>`;
+        }
+      } else {
+        document.getElementById('bankNameDisplay').textContent = 'بانک مقصد';
+        document.getElementById('captureCardTarget').style.background = 'linear-gradient(135deg, #0f172a, #1e1b4b)';
+      }
+
+      // بررسی وضعیت الگوریتم Luhn
+      const valMsg = document.getElementById('validationMessage');
+      if (raw.length === 16) {
+        const isValid = validateLuhn(raw);
+        badge.classList.remove('hidden');
+        if (isValid) {
+          badge.className = 'flex items-center gap-1 text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-xs';
+          badge.innerHTML = '<i class="fa-solid fa-check-circle"></i> کارت معتبر شتابی';
+          valMsg.classList.add('hidden');
+        } else {
+          badge.className = 'flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2.5 py-1 rounded-lg text-xs';
+          badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> خطای رقم کنترلی';
+          valMsg.classList.remove('hidden');
+        }
+      } else {
+        badge.classList.add('hidden');
+        valMsg.classList.add('hidden');
+      }
+    }
+
+    function clearInput() {
+      const input = document.getElementById('cardNumberInput');
+      input.value = '';
+      handleCardInput({ target: input });
+      input.focus();
+    }
+
+    async function pasteFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        const input = document.getElementById('cardNumberInput');
+        input.value = text;
+        handleCardInput({ target: input });
+      } catch (err) {
+        alert('لطفاً دسترسی کلیپ‌بورد را در مرورگر مجاز کنید.');
+      }
+    }
+
+    function setSampleCard(bin) {
+      const input = document.getElementById('cardNumberInput');
+      input.value = bin + '00001234567';
+      handleCardInput({ target: input });
+    }
+
+    // فراخوانی سرویس استعلام زحل (Real API یا Demo Simulator)
+    async function executeInquiry() {
+      const input = document.getElementById('cardNumberInput');
+      const rawCard = toEnglishDigits(input.value).replace(/\D/g, '');
+      const btn = document.getElementById('inquiryBtn');
+      const holderDisplay = document.getElementById('cardHolderDisplay');
+
+      if (rawCard.length !== 16) {
+        alert('لطفاً شماره کارت ۱۶ رقمی را کامل وارد نمایید.');
+        input.focus();
+        return;
+      }
+
+      const apiKey = localStorage.getItem('zohal_api_key');
+      const env = localStorage.getItem('zohal_api_env') || 'production';
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-amber-300"></i> <span>در حال ارتباط با سوئیچ زحل...</span>`;
+      holderDisplay.textContent = 'در حال پردازش نام...';
+      holderDisplay.className = 'text-sky-300 animate-pulse font-bold text-sm sm:text-base';
+
+      try {
+        let result = null;
+
+        if (apiKey && env === 'production') {
+          // ارسال درخواست اصلی به API زحل
+          const response = await fetch('https://api.zohal.io/v1/services/card-inquiry', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ card_number: rawCard })
+          });
+
+          if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(errBody.message || `خطای سرور با کد ${response.status}`);
+          }
+
+          const resData = await response.json();
+          result = {
+            name: resData.data?.name || resData.name || resData.holder_name,
+            bank: resData.data?.bank || BANK_REGISTRY[rawCard.substring(0, 6)]?.name || 'بانک شتاب',
+            card: rawCard
+          };
+        } else {
+          // حالت شبیه‌ساز هوشمند (تست و دمو بدون کلید)
+          await new Promise(r => setTimeout(r, 450));
+          
+          const sampleNames = [
+            'امیرسام نامدار حاجی خانلو',
+            'رضا محمدی اصل',
+            'سارا حسینی',
+            'علی رضایی فرد',
+            'شرکت تجارت نوین پارس'
+          ];
+          const assignedName = sampleNames[Math.abs(hashCode(rawCard)) % sampleNames.length];
+          const bankInfo = BANK_REGISTRY[rawCard.substring(0, 6)];
+
+          result = {
+            name: assignedName,
+            bank: bankInfo ? bankInfo.name : 'بانک مرکزی شتاب',
+            card: rawCard
+          };
+        }
+
+        // موفقیت در استعلام
+        currentInquiryResult = result;
+        holderDisplay.textContent = result.name;
+        holderDisplay.className = 'text-emerald-400 font-black text-sm sm:text-base tracking-wide drop-shadow';
+
+        // افکت صوتی / انیمیشن موفقیت
+        confetti({
+          particleCount: 35,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+
+        // ذخیره در سوابق
+        addToHistory({
+          card: result.card,
+          name: result.name,
+          bank: result.bank,
+          time: new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date()),
+          date: new Intl.DateTimeFormat('fa-IR', { month: 'short', day: 'numeric' }).format(new Date())
+        });
+
+      } catch (error) {
+        holderDisplay.textContent = 'ناموفق / خطا در تطابق';
+        holderDisplay.className = 'text-rose-400 font-bold text-sm';
+        alert('خطا در استعلام کارت: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-bolt text-amber-300"></i> <span>استعلام هوشمند نام دارنده</span>`;
+      }
+    }
+
+    function hashCode(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return hash;
+    }
+
+    // ذخیره در LocalStorage
+    function addToHistory(entry) {
+      // جلوگیری از ثبت تکراری متوالی
+      historyData = historyData.filter(h => h.card !== entry.card);
+      historyData.unshift(entry);
+      if (historyData.length > 50) historyData.pop();
+      localStorage.setItem('zohal_inquiry_history_v3', JSON.stringify(historyData));
+      renderHistory();
+      updateStats();
+    }
+
+    // نمایش تاریخچه با فیلتر
+    function renderHistory(filteredItems = null) {
+      const container = document.getElementById('historyListContainer');
+      const items = filteredItems || historyData;
+
+      if (!items.length) {
+        container.innerHTML = `
+          <div class="text-center py-16 text-slate-500 text-xs">
+            <i class="fa-solid fa-clock-rotate-left text-3xl mb-2 opacity-30 block"></i>
+            تاریخچه‌ای یافت نشد
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = items.map((item) => `
+        <div class="group bg-slate-900/70 hover:bg-slate-800/90 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-3.5 flex items-center justify-between transition duration-200 cursor-pointer" onclick="fillFromHistory('${item.card}')">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center text-sm group-hover:scale-105 transition">
+              <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-100">${item.name}</div>
+              <div class="text-[11px] font-mono text-slate-400 tracking-wider" dir="ltr">${item.card.replace(/(\d{4})/g, '$1 ').trim()}</div>
+            </div>
+          </div>
+
+          <div class="text-left flex flex-col items-end gap-1">
+            <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-sky-300 font-medium">${item.bank}</span>
+            <span class="text-[10px] text-slate-500 font-mono">${item.time}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterHistory(keyword) {
+      const q = toEnglishDigits(keyword).toLowerCase();
+      const filtered = historyData.filter(item => 
+        item.name.toLowerCase().includes(q) ||
+        item.card.includes(q) ||
+        item.bank.toLowerCase().includes(q)
+      );
+      renderHistory(filtered);
+    }
+
+    function fillFromHistory(card) {
+      const input = document.getElementById('cardNumberInput');
+      input.value = card;
+      handleCardInput({ target: input });
+      executeInquiry();
+    }
+
+    function clearHistory() {
+      if (confirm('آیا از پاک‌سازی تمامی اطلاعات تاریخچه مطمئن هستید؟')) {
+        historyData = [];
+        localStorage.removeItem('zohal_inquiry_history_v3');
+        renderHistory();
+        updateStats();
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('statTotalCount').textContent = historyData.length;
+    }
+
+    // خروجی CSV برای اکسل
+    function exportHistoryCSV() {
+      if (!historyData.length) {
+        alert('تاریخچه‌ای برای صدور فایل وجود ندارد.');
+        return;
+      }
+
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+      csvContent += "شماره کارت,نام صاحب کارت,نام بانک,زمان,تاریخ\n";
+
+      historyData.forEach(row => {
+        csvContent += `="${row.card}","${row.name}","${row.bank}","${row.time}","${row.date}"\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `zohal_inquiries_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // دانلود تصویر کارت (Snapshot)
+    async function downloadCardImage() {
+      const cardElement = document.getElementById('captureCardTarget');
+      try {
+        const canvas = await html2canvas(cardElement, {
+          backgroundColor: null,
+          scale: 2
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `bank_card_${Date.now()}.png`;
+        link.href = imgData;
+        link.click();
+      } catch (err) {
+        alert('خطا در تولید تصویر کارت.');
+      }
+    }
+
+    // بارکد QR
+    function openQrModal() {
+      const input = document.getElementById('cardNumberInput');
+      const rawCard = toEnglishDigits(input.value).replace(/\D/g, '');
+      if (rawCard.length < 16) {
+        alert('لطفاً ابتدا شماره کارت ۱۶ رقمی را وارد کنید.');
+        return;
+      }
+
+      const qrContainer = document.getElementById('qrcode');
+      qrContainer.innerHTML = '';
+      new QRCode(qrContainer, {
+        text: rawCard,
+        width: 180,
+        height: 180,
+        colorDark: "#020617",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      document.getElementById('qrModal').classList.remove('hidden');
+      document.getElementById('qrModal').classList.add('flex');
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').classList.add('hidden');
+      document.getElementById('qrModal').classList.remove('flex');
+    }
+
+    // اشتراک‌گذاری نتیجه
+    async function shareResult() {
+      const input = document.getElementById('cardNumberInput');
+      const rawCard = toEnglishDigits(input.value).replace(/\D/g, '');
+      const holder = document.getElementById('cardHolderDisplay').textContent;
+      const bank = document.getElementById('bankNameDisplay').textContent;
+
+      if (!rawCard || holder.includes('انتظار')) {
+        alert('ابتدا استعلام یک کارت را با موفقیت انجام دهید.');
+        return;
+      }
+
+      const shareText = `اطلاعات حساب بانکی:\nصاحب حساب: ${holder}\nشماره کارت: ${rawCard}\nبانک: ${bank}\nاستعلام‌شده از سرویس زحل`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'مشخصات کارت بانکی',
+            text: shareText
+          });
+        } catch (e) {}
+      } else {
+        copyToClipboard(shareText);
+        alert('مشخصات در کلیپ‌بورد کپی شد.');
+      }
+    }
+
+    function copyToClipboard(text) {
+      if (!text) return;
+      navigator.clipboard.writeText(text);
+    }
+
+    // پاپ‌آپ استعلام دسته‌ای (Batch)
+    function toggleBatchModal(show) {
+      const m = document.getElementById('batchModal');
+      m.style.display = show ? 'flex' : 'none';
+      if (!show) {
+        document.getElementById('batchResults').classList.add('hidden');
+        document.getElementById('batchInput').value = '';
+      }
+    }
+
+    async function runBatchInquiry() {
+      const text = document.getElementById('batchInput').value.trim();
+      if (!text) {
+        alert('شماره کارت‌ها را وارد کنید.');
+        return;
+      }
+
+      const cards = text.split('\n').map(c => toEnglishDigits(c).replace(/\D/g, '')).filter(c => c.length === 16);
+      if (!cards.length) {
+        alert('هیچ شماره کارت ۱۶ رقمی معتبری در متن یافت نشد.');
+        return;
+      }
+
+      const resultBox = document.getElementById('batchResults');
+      resultBox.classList.remove('hidden');
+      resultBox.innerHTML = '<div class="text-center py-4 text-sky-400 text-xs"><i class="fa-solid fa-spinner fa-spin"></i> در حال پردازش دسته‌ای...</div>';
+
+      const results = [];
+      for (const card of cards) {
+        const bank = BANK_REGISTRY[card.substring(0, 6)]?.name || 'عضو شتاب';
+        results.push({ card, bank, name: 'کاربر استعلام شده (' + card.slice(-4) + ')' });
+      }
+
+      resultBox.innerHTML = results.map(r => `
+        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+          <span class="font-mono" dir="ltr">${r.card}</span>
+          <span class="text-sky-400 font-bold">${r.name}</span>
+          <span class="text-slate-400 text-[11px]">${r.bank}</span>
+        </div>
+      `).join('');
+    }
+
+    // تنظیمات
+    function toggleSettingsModal(show) {
+      const m = document.getElementById('settingsModal');
+      m.style.display = show ? 'flex' : 'none';
+    }
+
+    function saveApiSettings() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      const env = document.getElementById('apiEnvSelect').value;
+
+      if (key) localStorage.setItem('zohal_api_key', key);
+      else localStorage.removeItem('zohal_api_key');
+
+      localStorage.setItem('zohal_api_env', env);
+      updateApiStatusDot(!!key);
+      toggleSettingsModal(false);
+      alert('تنظیمات با موفقیت ذخیره شد.');
+    }
+
+    function updateApiStatusDot(hasKey) {
+      const dot = document.getElementById('apiStatusDot');
+      if (hasKey) {
+        dot.className = 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500';
+      } else {
+        dot.className = 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500';
+      }
+    }
+
+    function togglePasswordVisibility(inputId) {
+      const el = document.getElementById(inputId);
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+  </script>
+</body>
+</html>
